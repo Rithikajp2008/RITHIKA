@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TASK_OS v2.0 — Friend Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --border: #2a2a2a;
+    --neon: #00ff88;
+    --neon2: #ff3366;
+    --neon3: #00aaff;
+    --neon4: #ffcc00;
+    --text: #e0e0e0;
+    --dim: #555;
+    --scan: rgba(0,255,136,0.03);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { min-height:100vh; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Courier Prime', monospace;
+    color: var(--text);
+    overflow-x:hidden;
+    cursor: default;
+  }
+
+  /* Scanlines */
+  body::after {
+    content:'';
+    position:fixed; inset:0; z-index:9999;
+    pointer-events:none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scan) 2px, var(--scan) 4px);
+  }
+
+  /* CRT flicker */
+  @keyframes flicker { 0%,100%{opacity:1} 92%{opacity:0.97} 93%{opacity:0.9} 94%{opacity:0.97} }
+  .app { animation: flicker 8s infinite; }
+
+  .app {
+    max-width: 900px; margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid var(--neon); padding: 10px 16px; margin-bottom: 24px;
+    position:relative;
+    box-shadow: 0 0 20px rgba(0,255,136,0.2), inset 0 0 20px rgba(0,255,136,0.03);
+  }
+  .topbar::before {
+    content:'■ ■ ■';
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    color:var(--neon); font-size:10px; letter-spacing:4px;
+  }
+  .topbar-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 6px;
+    color: var(--neon);
+    text-shadow: 0 0 20px var(--neon), 0 0 40px rgba(0,255,136,0.3);
+    margin:0 auto;
+  }
+  .topbar-time {
+    font-family: 'VT323', monospace; font-size:18px;
+    color: var(--dim); letter-spacing:2px;
+  }
+
+  /* ── GRID LAYOUT ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: auto auto 1fr;
+    gap: 16px;
+    min-height: calc(100vh - 140px);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 0;
+    position:relative;
+  }
+  .panel-header {
+    background: var(--border); padding: 8px 14px;
+    font-family:'VT323',monospace; font-size:16px;
+    letter-spacing:2px; color:var(--dim);
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-header .ph-accent { color:var(--neon); }
+  .panel-body { padding: 16px; }
+
+  /* ── SIDEBAR ── */
+  .sidebar { grid-row: 1 / 4; display:flex; flex-direction:column; gap:16px; }
+
+  /* ASCII art logo */
+  .ascii-logo {
+    font-family:'VT323',monospace; font-size:13px;
+    color:var(--neon); line-height:1.2;
+    text-shadow: 0 0 10px rgba(0,255,136,0.5);
+    padding: 16px; letter-spacing:1px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Stats block */
+  .stat-block { padding:16px; border-bottom:1px solid var(--border); }
+  .stat-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; }
+  .stat-row + .stat-row { border-top:1px solid var(--border); }
+  .stat-key { font-size:12px; color:var(--dim); letter-spacing:2px; }
+  .stat-val { font-family:'VT323',monospace; font-size:22px; }
+  .sv-total { color:var(--neon3); }
+  .sv-done  { color:var(--neon); }
+  .sv-left  { color:var(--neon2); }
+
+  /* Progress bar */
+  .prog-block { padding:16px; border-bottom:1px solid var(--border); }
+  .prog-label { font-size:11px; color:var(--dim); letter-spacing:2px; margin-bottom:10px; }
+  .prog-bar-wrap {
+    background:#0a0a0a; border:1px solid var(--border); height:20px;
+    position:relative; overflow:hidden;
+  }
+  .prog-bar-fill {
+    height:100%; background:var(--neon);
+    transition:width 0.6s cubic-bezier(.4,0,.2,1);
+    box-shadow: 2px 0 12px var(--neon);
+    position:relative;
+  }
+  .prog-bar-fill::after {
+    content:'';
+    position:absolute; right:0; top:0; bottom:0; width:2px;
+    background:white; box-shadow:0 0 8px white;
+    animation: blink-bar 1s step-end infinite;
+  }
+  @keyframes blink-bar {0%,100%{opacity:1}50%{opacity:0}}
+  .prog-pct {
+    font-family:'VT323',monospace; font-size:20px; color:var(--neon);
+    text-align:right; margin-top:6px;
+    text-shadow:0 0 10px var(--neon);
+  }
+
+  /* Category nav */
+  .cat-nav { padding:16px; flex:1; }
+  .cat-nav-title { font-size:11px; color:var(--dim); letter-spacing:2px; margin-bottom:10px; }
+  .cat-btn {
+    display:flex; align-items:center; gap:10px; width:100%;
+    background:transparent; border:none; border-left:2px solid transparent;
+    padding:8px 10px; cursor:pointer; color:var(--dim);
+    font-family:'Courier Prime',monospace; font-size:13px;
+    transition:all 0.2s; text-align:left;
+    letter-spacing:1px;
+  }
+  .cat-btn:hover { color:var(--text); border-left-color:var(--border); }
+  .cat-btn.active { color:var(--neon); border-left-color:var(--neon); background:rgba(0,255,136,0.05); }
+  .cat-count {
+    margin-left:auto; background:var(--border); padding:1px 6px;
+    font-size:11px; border-radius:2px;
+  }
+  .cat-btn.active .cat-count { background:var(--neon); color:black; }
+
+  /* Command hint */
+  .cmd-hint { padding:12px 16px; border-top:1px solid var(--border); }
+  .cmd-line { font-size:11px; color:var(--dim); letter-spacing:1px; margin-bottom:4px; }
+  .cmd-key { background:var(--border); padding:1px 5px; border-radius:2px; color:var(--text); }
+
+  /* ── MAIN AREA ── */
+  .main-col { display:flex; flex-direction:column; gap:16px; }
+
+  /* Input terminal */
+  .input-panel { }
+  .terminal-line {
+    display:flex; align-items:center; gap:0; padding:14px 16px;
+    background:#050505;
+  }
+  .prompt { font-family:'VT323',monospace; font-size:20px; color:var(--neon); margin-right:10px; white-space:nowrap; }
+  #taskInput {
+    flex:1; background:transparent; border:none; outline:none;
+    font-family:'Courier Prime',monospace; font-size:15px; color:var(--text);
+    caret-color:var(--neon);
+  }
+  #taskInput::placeholder { color:var(--dim); }
+
+  .input-opts {
+    display:flex; gap:0; border-top:1px solid var(--border);
+    background:var(--bg);
+  }
+  .opt-group {
+    flex:1; display:flex; align-items:center; gap:0;
+    border-right:1px solid var(--border); padding:8px 12px;
+  }
+  .opt-group:last-child { border-right:none; }
+  .opt-label { font-size:10px; color:var(--dim); letter-spacing:2px; margin-right:8px; }
+  .opt-select {
+    background:transparent; border:none; outline:none;
+    font-family:'Courier Prime',monospace; font-size:13px;
+    color:var(--neon3); cursor:pointer;
+    flex:1;
+  }
+  .opt-select option { background:#111; color:var(--text); }
+
+  .add-terminal-btn {
+    background:var(--neon); color:black; border:none;
+    font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:3px;
+    padding:0 28px; cursor:pointer;
+    transition:all 0.2s;
+    border-left:1px solid var(--neon);
+  }
+  .add-terminal-btn:hover { background:#00cc66; box-shadow:0 0 20px rgba(0,255,136,0.4); }
+
+  /* Filter bar */
+  .filter-bar {
+    display:flex; gap:0; border:1px solid var(--border); overflow:hidden;
+  }
+  .fb-btn {
+    flex:1; background:transparent; border:none; border-right:1px solid var(--border);
+    padding:8px 4px; cursor:pointer; font-family:'VT323',monospace; font-size:16px;
+    letter-spacing:2px; color:var(--dim); transition:all 0.2s; text-align:center;
+  }
+  .fb-btn:last-child { border-right:none; }
+  .fb-btn:hover { background:rgba(255,255,255,0.04); color:var(--text); }
+  .fb-btn.active { background:rgba(0,255,136,0.1); color:var(--neon); border-bottom:2px solid var(--neon); }
+
+  /* Task list */
+  .task-list-panel { flex:1; }
+  #taskList { }
+
+  .task-row {
+    display:flex; align-items:flex-start; gap:12px;
+    padding:12px 16px; border-bottom:1px solid var(--border);
+    transition:all 0.2s; position:relative;
+    animation:row-in 0.3s ease;
+    cursor:default;
+  }
+  @keyframes row-in { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+  .task-row:hover { background:rgba(255,255,255,0.02); }
+  .task-row.done { opacity:0.4; }
+  .task-row.done .task-text { text-decoration:line-through; color:var(--dim); }
+
+  /* Priority accent left bar */
+  .task-row::before {
+    content:'';
+    position:absolute; left:0; top:0; bottom:0; width:2px;
+    background:var(--row-color,var(--neon));
+  }
+
+  .task-num {
+    font-family:'VT323',monospace; font-size:18px; color:var(--dim);
+    min-width:28px; line-height:1.4; padding-top:2px;
+  }
+  .check-box {
+    width:18px; height:18px; border:1px solid var(--row-color,var(--neon));
+    background:transparent; cursor:pointer; flex-shrink:0; margin-top:3px;
+    display:grid; place-items:center; font-size:12px; transition:all 0.2s;
+    color:transparent;
+  }
+  .check-box:hover { background:rgba(0,255,136,0.15); }
+  .task-row.done .check-box { background:var(--row-color,var(--neon)); color:black; }
+
+  .task-info { flex:1; min-width:0; }
+  .task-text { font-size:14px; line-height:1.5; word-break:break-word; margin-bottom:5px; }
+  .task-badges { display:flex; flex-wrap:wrap; gap:6px; }
+  .badge {
+    font-size:10px; font-family:'VT323',monospace; letter-spacing:2px;
+    padding:2px 7px; border:1px solid; border-radius:0;
+  }
+  .badge-cat  { border-color:var(--neon3); color:var(--neon3); }
+  .badge-pri-high   { border-color:var(--neon2); color:var(--neon2); }
+  .badge-pri-medium { border-color:var(--neon4); color:var(--neon4); }
+  .badge-pri-low    { border-color:var(--neon); color:var(--neon); }
+  .badge-date { border-color:var(--dim); color:var(--dim); }
+
+  .row-actions { display:flex; gap:4px; opacity:0; transition:opacity 0.2s; }
+  .task-row:hover .row-actions { opacity:1; }
+  .row-btn {
+    background:transparent; border:1px solid var(--border);
+    padding:3px 8px; cursor:pointer; font-family:'VT323',monospace;
+    font-size:14px; color:var(--dim); letter-spacing:1px;
+    transition:all 0.2s;
+  }
+  .row-btn:hover { background:rgba(255,51,102,0.15); color:var(--neon2); border-color:var(--neon2); }
+
+  /* Empty */
+  .empty-state {
+    padding:60px; text-align:center;
+    font-family:'VT323',monospace; color:var(--dim);
+    animation:row-in 0.4s ease;
+  }
+  .empty-state pre { font-size:13px; line-height:1.4; margin-bottom:16px; }
+  .empty-state p { font-size:18px; letter-spacing:3px; }
+
+  /* Notification toast */
+  .toast {
+    position:fixed; bottom:24px; right:24px; z-index:9998;
+    background:var(--neon); color:black;
+    font-family:'VT323',monospace; font-size:18px; letter-spacing:2px;
+    padding:10px 20px; animation:toast-in 0.3s ease;
+    box-shadow: 0 0 30px rgba(0,255,136,0.5);
+  }
+  @keyframes toast-in { from{transform:translateX(120%)} to{transform:translateX(0)} }
+
+  /* Clock */
+  #clock { font-family:'VT323',monospace; font-size:16px; color:var(--dim); letter-spacing:2px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div style="width:60px"></div>
+    <div class="topbar-title">TASK_OS v2.0</div>
+    <div id="clock">00:00:00</div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid">
+
+    <!-- SIDEBAR -->
+    <aside class="panel sidebar">
+      <div class="ascii-logo">
+████████╗ █████╗ ███████╗██╗  ██╗
+╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
+   ██║   ███████║███████╗█████╔╝
+   ██║   ██╔══██║╚════██║██╔═██╗
+   ██║   ██║  ██║███████║██║  ██╗
+╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+      </div>
+
+      <div class="stat-block">
+        <div class="stat-row"><span class="stat-key">TOTAL</span><span class="stat-val sv-total" id="sTot">0</span></div>
+        <div class="stat-row"><span class="stat-key">COMPLETE</span><span class="stat-val sv-done" id="sDone">0</span></div>
+        <div class="stat-row"><span class="stat-key">PENDING</span><span class="stat-val sv-left" id="sLeft">0</span></div>
+      </div>
+
+      <div class="prog-block">
+        <div class="prog-label">// COMPLETION RATE</div>
+        <div class="prog-bar-wrap">
+          <div class="prog-bar-fill" id="progFill" style="width:0%"></div>
+        </div>
+        <div class="prog-pct" id="progPct">0%</div>
+      </div>
+
+      <div class="cat-nav">
+        <div class="cat-nav-title">// CATEGORIES</div>
+        <button class="cat-btn active" onclick="setFilter('all',this)" data-filter="all">⬛ ALL TASKS <span class="cat-count" id="cc-all">0</span></button>
+        <button class="cat-btn" onclick="setFilter('work',this)" data-filter="work">▶ WORK <span class="cat-count" id="cc-work">0</span></button>
+        <button class="cat-btn" onclick="setFilter('personal',this)" data-filter="personal">◆ PERSONAL <span class="cat-count" id="cc-personal">0</span></button>
+        <button class="cat-btn" onclick="setFilter('health',this)" data-filter="health">+ HEALTH <span class="cat-count" id="cc-health">0</span></button>
+        <button class="cat-btn" onclick="setFilter('creative',this)" data-filter="creative">* CREATIVE <span class="cat-count" id="cc-creative">0</span></button>
+        <button class="cat-btn" onclick="setFilter('learning',this)" data-filter="learning">~ LEARNING <span class="cat-count" id="cc-learning">0</span></button>
+      </div>
+
+      <div class="cmd-hint">
+        <div class="cmd-line"><span class="cmd-key">ENTER</span> — add task</div>
+        <div class="cmd-line"><span class="cmd-key">CLICK</span> — toggle done</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-col">
+
+      <!-- Input -->
+      <div class="panel input-panel">
+        <div class="panel-header">
+          <span>INPUT_TERMINAL</span>
+          <span class="ph-accent">[ READY ]</span>
+        </div>
+        <div class="terminal-line">
+          <span class="prompt">$&gt;&nbsp;</span>
+          <input type="text" id="taskInput" placeholder="type new task and press ENTER..." maxlength="200">
+        </div>
+        <div class="input-opts">
+          <div class="opt-group">
+            <span class="opt-label">CAT:</span>
+            <select class="opt-select" id="catSel">
+              <option value="work">WORK</option>
+              <option value="personal">PERSONAL</option>
+              <option value="health">HEALTH</option>
+              <option value="creative">CREATIVE</option>
+              <option value="learning">LEARNING</option>
+            </select>
+          </div>
+          <div class="opt-group">
+            <span class="opt-label">PRI:</span>
+            <select class="opt-select" id="priSel">
+              <option value="high">HIGH</option>
+              <option value="medium">MEDIUM</option>
+              <option value="low">LOW</option>
+            </select>
+          </div>
+          <button class="add-terminal-btn" onclick="addTask()">EXECUTE</button>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-bar">
+        <button class="fb-btn active" onclick="setStatus('all',this)">ALL</button>
+        <button class="fb-btn" onclick="setStatus('active',this)">ACTIVE</button>
+        <button class="fb-btn" onclick="setStatus('done',this)">DONE</button>
+        <button class="fb-btn" onclick="setStatus('high',this)">!! HIGH</button>
+        <button class="fb-btn" onclick="clearDone()">CLR DONE</button>
+      </div>
+
+      <!-- Task list -->
+      <div class="panel task-list-panel">
+        <div class="panel-header">
+          <span>TASK_QUEUE</span>
+          <span class="ph-accent" id="queueStatus">[ 0 ITEMS ]</span>
+        </div>
+        <div id="taskList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let tasks = JSON.parse(localStorage.getItem('taskas-tasks') || '[]');
+let catFilter = 'all';
+let statusFilter = 'all';
+
+const PRI_COLOR = { high:'#ff3366', medium:'#ffcc00', low:'#00ff88' };
+const CAT_EMOJI  = { work:'▶', personal:'◆', health:'+', creative:'*', learning:'~' };
+
+function save() { localStorage.setItem('taskas-tasks', JSON.stringify(tasks)); }
+
+function addTask() {
+  const text = document.getElementById('taskInput').value.trim();
+  if (!text) return;
+  tasks.unshift({
+    id: Date.now(),
+    text,
+    category: document.getElementById('catSel').value,
+    priority: document.getElementById('priSel').value,
+    done: false,
+    date: new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'})
+  });
+  document.getElementById('taskInput').value = '';
+  save(); render();
+  showToast('TASK LOGGED');
+}
+
+function toggleTask(id) {
+  const t = tasks.find(x=>x.id===id);
+  if (t) { t.done=!t.done; save(); render(); if(t.done) showToast('TASK COMPLETE'); }
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(x=>x.id!==id);
+  save(); render(); showToast('TASK DELETED');
+}
+
+function clearDone() {
+  tasks = tasks.filter(t=>!t.done);
+  save(); render(); showToast('DONE TASKS CLEARED');
+}
+
+function setFilter(f,btn) {
+  catFilter = f;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); render();
+}
+
+function setStatus(f,btn) {
+  statusFilter = f;
+  document.querySelectorAll('.fb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); render();
+}
+
+function getVisible() {
+  let t = [...tasks];
+  if (catFilter !== 'all') t = t.filter(x=>x.category===catFilter);
+  if (statusFilter === 'active') t = t.filter(x=>!x.done);
+  else if (statusFilter === 'done') t = t.filter(x=>x.done);
+  else if (statusFilter === 'high') t = t.filter(x=>x.priority==='high');
+  return t;
+}
+
+function render() {
+  const total = tasks.length;
+  const done  = tasks.filter(t=>t.done).length;
+  const left  = total - done;
+  const pct   = total ? Math.round(done/total*100) : 0;
+
+  document.getElementById('sTot').textContent  = String(total).padStart(2,'0');
+  document.getElementById('sDone').textContent = String(done).padStart(2,'0');
+  document.getElementById('sLeft').textContent = String(left).padStart(2,'0');
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progPct').textContent  = pct + '%';
+
+  // Category counts
+  ['all','work','personal','health','creative','learning'].forEach(c=>{
+    const el = document.getElementById('cc-'+c);
+    if (el) el.textContent = c==='all' ? total : tasks.filter(t=>t.category===c).length;
+  });
+
+  const vis = getVisible();
+  document.getElementById('queueStatus').textContent = `[ ${vis.length} ITEMS ]`;
+
+  const list = document.getElementById('taskList');
+  if (!vis.length) {
+    list.innerHTML = `<div class="empty-state"><pre>
+  _  _ ____ ____ ____ ___
+  |\\ | |  | |  | |___  |
+  | \\| |__| |__| |___  |
+    </pre><p>// NO TASKS IN QUEUE</p></div>`;
+    return;
+  }
+
+  list.innerHTML = vis.map((t,i) => `
+    <div class="task-row ${t.done?'done':''}" style="--row-color:${PRI_COLOR[t.priority]}">
+      <div class="task-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="check-box" onclick="toggleTask(${t.id})" title="toggle">${t.done?'✓':''}</div>
+      <div class="task-info">
+        <div class="task-text">${escHtml(t.text)}</div>
+        <div class="task-badges">
+          <span class="badge badge-cat">${CAT_EMOJI[t.category]} ${t.category.toUpperCase()}</span>
+          <span class="badge badge-pri-${t.priority}">${t.priority.toUpperCase()}</span>
+          <span class="badge badge-date">${t.date}</span>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="row-btn" onclick="deleteTask(${t.id})">DEL</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastTimer;
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  let t = document.querySelector('.toast');
+  if (t) t.remove();
+  t = document.createElement('div');
+  t.className = 'toast'; t.textContent = '> ' + msg;
+  document.body.appendChild(t);
+  toastTimer = setTimeout(()=>t.remove(), 2000);
+}
+
+// Clock
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    [n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+}
+setInterval(updateClock,1000); updateClock();
+
+document.getElementById('taskInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') addTask();
+});
+
+render();
+</script>
+</body>
+</html>

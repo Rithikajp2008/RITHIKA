@@ -1,0 +1,127 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-sans)}
+.game{background:#0d0d1a;border-radius:20px;padding:28px;color:#fff;min-height:520px}
+.gtop{text-align:center;margin-bottom:24px}
+.gtitle{font-size:22px;font-weight:500;color:#fff;letter-spacing:1px}
+.gtag{font-size:12px;color:#6366f1;margin-top:4px;letter-spacing:2px}
+.scoreboard{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:center;background:rgba(255,255,255,0.05);border-radius:14px;padding:16px;margin-bottom:24px;border:1px solid rgba(99,102,241,0.3)}
+.score-side{text-align:center}
+.score-label{font-size:11px;color:#94a3b8;margin-bottom:4px;letter-spacing:1px}
+.score-num{font-size:32px;font-weight:500}
+.score-you{color:#6366f1}
+.score-cpu{color:#f43f5e}
+.score-vs{font-size:14px;color:#475569;font-weight:500}
+.arena{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin-bottom:24px;min-height:110px}
+.arena-side{text-align:center}
+.arena-label{font-size:11px;color:#94a3b8;margin-bottom:8px;letter-spacing:1px}
+.arena-icon{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);transition:all 0.3s}
+.arena-icon.you-side{border-color:rgba(99,102,241,0.5);background:rgba(99,102,241,0.1)}
+.arena-icon.cpu-side{border-color:rgba(244,63,94,0.5);background:rgba(244,63,94,0.1)}
+.arena-icon.win{border-color:#22c55e;background:rgba(34,197,94,0.15)}
+.arena-icon.lose{border-color:#ef4444;background:rgba(239,68,68,0.1)}
+.arena-icon.tie{border-color:#eab308;background:rgba(234,179,8,0.1)}
+.vs-badge{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;font-weight:500}
+.result-box{text-align:center;min-height:44px;margin-bottom:20px}
+.result-text{font-size:18px;font-weight:500;padding:10px 24px;border-radius:20px;display:inline-block}
+.result-win{background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3)}
+.result-lose{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.result-tie{background:rgba(234,179,8,0.1);color:#facc15;border:1px solid rgba(234,179,8,0.3)}
+.result-idle{color:#475569;font-size:14px;margin-top:4px}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.choice-btn{background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.12);border-radius:16px;padding:18px 10px;cursor:pointer;transition:all 0.2s;color:#fff;display:flex;flex-direction:column;align-items:center;gap:8px}
+.choice-btn:hover{background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.6);transform:translateY(-3px)}
+.choice-btn:active{transform:scale(0.96)}
+.choice-btn.selected{background:rgba(99,102,241,0.2);border-color:#6366f1}
+.cbicon{font-size:32px;line-height:1}
+.cbtext{font-size:12px;color:#94a3b8;letter-spacing:0.5px}
+.history-label{font-size:11px;color:#475569;margin-bottom:10px;letter-spacing:1px}
+.history-row{display:flex;gap:6px;flex-wrap:wrap}
+.hist-chip{font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8}
+.hist-chip.w{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80}
+.hist-chip.l{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25);color:#f87171}
+.hist-chip.t{background:rgba(234,179,8,0.08);border-color:rgba(234,179,8,0.25);color:#facc15}
+.reset-btn{width:100%;margin-top:14px;background:rgba(244,63,94,0.15);color:#f87171;border:1px solid rgba(244,63,94,0.3);padding:10px;border-radius:10px;cursor:pointer;font-size:13px;transition:all 0.2s;font-family:var(--font-sans)}
+.reset-btn:hover{background:rgba(244,63,94,0.25)}
+</style>
+<div class="game">
+  <div class="gtop">
+    <div class="gtitle">Rock · Paper · Scissors</div>
+    <div class="gtag">COSMIC BATTLE ARENA</div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-side"><div class="score-label">YOU</div><div class="score-num score-you" id="sYou">0</div></div>
+    <div class="score-vs">VS</div>
+    <div class="score-side"><div class="score-label">CPU</div><div class="score-num score-cpu" id="sCpu">0</div></div>
+  </div>
+  <div class="arena">
+    <div class="arena-side">
+      <div class="arena-label">YOUR MOVE</div>
+      <div class="arena-icon you-side" id="aYou"><span style="font-size:28px;color:#475569">?</span></div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="arena-side">
+      <div class="arena-label">CPU MOVE</div>
+      <div class="arena-icon cpu-side" id="aCpu"><span style="font-size:28px;color:#475569">?</span></div>
+    </div>
+  </div>
+  <div class="result-box"><div id="resultText" class="result-idle">Choose your weapon below</div></div>
+  <div class="choices">
+    <button class="choice-btn" onclick="play('rock')"><span class="cbicon">&#9994;</span><span class="cbtext">Rock</span></button>
+    <button class="choice-btn" onclick="play('paper')"><span class="cbicon">&#9995;</span><span class="cbtext">Paper</span></button>
+    <button class="choice-btn" onclick="play('scissors')"><span class="cbicon">&#9996;</span><span class="cbtext">Scissors</span></button>
+  </div>
+  <div class="history-label">ROUND HISTORY</div>
+  <div class="history-row" id="histRow"><span style="font-size:12px;color:#334155">No rounds yet</span></div>
+  <button class="reset-btn" onclick="resetGame()">Reset Game</button>
+</div>
+<script>
+const icons={rock:'&#9994;',paper:'&#9995;',scissors:'&#9996;'};
+const choices=['rock','paper','scissors'];
+let scores={you:0,cpu:0},history=[];
+
+function play(userChoice){
+  const cpuChoice=choices[Math.floor(Math.random()*3)];
+  const aYou=document.getElementById('aYou');
+  const aCpu=document.getElementById('aCpu');
+  aYou.innerHTML=`<span style="font-size:36px">${icons[userChoice]}</span>`;
+  aCpu.innerHTML=`<span style="font-size:36px">${icons[cpuChoice]}</span>`;
+  aYou.className='arena-icon you-side';
+  aCpu.className='arena-icon cpu-side';
+  let result,cls,histCls;
+  if(userChoice===cpuChoice){result='It\'s a Tie!';cls='result-tie';histCls='t';}
+  else if((userChoice==='rock'&&cpuChoice==='scissors')||(userChoice==='scissors'&&cpuChoice==='paper')||(userChoice==='paper'&&cpuChoice==='rock')){
+    result='You Win!';cls='result-win';histCls='w';scores.you++;
+    aYou.className='arena-icon win';aCpu.className='arena-icon lose';
+  }else{
+    result='CPU Wins!';cls='result-lose';histCls='l';scores.cpu++;
+    aYou.className='arena-icon lose';aCpu.className='arena-icon win';
+  }
+  const rt=document.getElementById('resultText');
+  rt.textContent=result;rt.className='result-text '+cls;
+  document.getElementById('sYou').textContent=scores.you;
+  document.getElementById('sCpu').textContent=scores.cpu;
+  history.unshift({u:userChoice,c:cpuChoice,r:histCls});
+  if(history.length>10)history.pop();
+  renderHistory();
+}
+
+function renderHistory(){
+  const labels={w:'Win',l:'Loss',t:'Tie'};
+  const rnames={rock:'R',paper:'P',scissors:'S'};
+  document.getElementById('histRow').innerHTML=history.map(h=>`<span class="hist-chip ${h.r}">${rnames[h.u]} vs ${rnames[h.c]} · ${labels[h.r]}</span>`).join('');
+}
+
+function resetGame(){
+  scores={you:0,cpu:0};history=[];
+  document.getElementById('sYou').textContent='0';
+  document.getElementById('sCpu').textContent='0';
+  document.getElementById('aYou').className='arena-icon you-side';
+  document.getElementById('aYou').innerHTML='<span style="font-size:28px;color:#475569">?</span>';
+  document.getElementById('aCpu').className='arena-icon cpu-side';
+  document.getElementById('aCpu').innerHTML='<span style="font-size:28px;color:#475569">?</span>';
+  document.getElementById('resultText').textContent='Choose your weapon below';
+  document.getElementById('resultText').className='result-idle';
+  document.getElementById('histRow').innerHTML='<span style="font-size:12px;color:#334155">No rounds yet</span>';
+}
+</script>
